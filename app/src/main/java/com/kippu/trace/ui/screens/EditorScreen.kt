@@ -71,7 +71,9 @@ fun EditorScreen(
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
         DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
+            onDismissRequest = { 
+                showDatePicker = false 
+            },
             confirmButton = {
                 TextButton(onClick = {
                     selectedDate = datePickerState.selectedDateMillis ?: selectedDate

@@ -47,7 +47,7 @@ fun PinnedEventCard(
             .clip(RoundedCornerShape(24.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(24.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (event.backgroundUri != null) {
@@ -117,18 +117,20 @@ fun PinnedEventCard(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                 }
-                
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "▷ 置顶",
-                        style = MaterialTheme.typography.labelMedium.copy(color = Color.White)
-                    )
-                }
+            }
+
+            // Pinned Badge moved outside to allow finer padding control
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(16.dp) // Closer to edge to align with 24dp corners
+                    .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "▷ 置顶",
+                    style = MaterialTheme.typography.labelMedium.copy(color = Color.White)
+                )
             }
         }
     }

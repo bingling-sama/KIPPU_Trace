@@ -7,7 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
@@ -23,8 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,6 +50,7 @@ class MainActivity : ComponentActivity() {
                 MainApp(
                     events = events,
                     onAddEvent = { eventViewModel.addEvent(it) },
+                    onDeleteEvent = { eventViewModel.deleteEvent(it) }
                 )
             }
         }
@@ -72,12 +70,13 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 fun MainApp(
     events: List<DateEvent> = emptyList(),
     onAddEvent: (DateEvent) -> Unit = {},
+    onDeleteEvent: (DateEvent) -> Unit = {},
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     
-    val isMainScreen = (currentDestination?.route == Screen.Home.route || currentDestination?.route == Screen.Settings.route)
+    val isMainScreen = (currentDestination?.route == Screen.Home.route) || (currentDestination?.route == Screen.Settings.route)
 
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
@@ -95,6 +94,7 @@ fun MainApp(
                         onEventClick = { event -> 
                             navController.navigate(Screen.Detail.createRoute(event.id))
                         },
+                        onDeleteEvent = onDeleteEvent,
                     )
                 }
             }
@@ -149,7 +149,7 @@ fun MainApp(
                             Text(
                                 text = screen.label,
                                 color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.labelMedium
+                                style = MaterialTheme.typography.labelMedium,
                             ) 
                         },
                         selected = isSelected,

@@ -21,7 +21,7 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
         allEvents = repository.allEvents.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
+            initialValue = emptyList(),
         )
     }
 
