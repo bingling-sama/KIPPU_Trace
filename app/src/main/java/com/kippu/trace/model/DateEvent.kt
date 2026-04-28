@@ -1,0 +1,23 @@
+package com.kippu.trace.model
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+enum class DisplayMode {
+    COUNT_DOWN, // 倒数
+    ACCUMULATE  // 累计
+}
+
+@Entity(tableName = "date_events")
+data class DateEvent(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val title: String,
+    val targetDate: Long,       // Epoch milliseconds
+    val isFuture: Boolean,      // 用于语义判断：已经/还有
+    val isLunar: Boolean = false,
+    val mode: DisplayMode,
+    val backgroundUri: String? = null,
+    val isPinned: Boolean = false,
+    val maskOpacity: Float = 0.3f
+)
