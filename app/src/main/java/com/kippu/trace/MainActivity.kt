@@ -87,16 +87,14 @@ fun MainApp(
             exitTransition = { fadeOut(tween(400)) },
         ) {
             composable(route = Screen.Home.route) {
-                Box(modifier = Modifier.padding(WindowInsets.navigationBars.asPaddingValues())) {
-                    com.kippu.trace.ui.screens.HomeScreen(
-                        events = events,
-                        onAddClick = { navController.navigate(Screen.Editor.route) },
-                        onEventClick = { event -> 
-                            navController.navigate(Screen.Detail.createRoute(event.id))
-                        },
-                        onDeleteEvent = onDeleteEvent,
-                    )
-                }
+                com.kippu.trace.ui.screens.HomeScreen(
+                    events = events,
+                    onAddClick = { navController.navigate(Screen.Editor.route) },
+                    onEventClick = { event -> 
+                        navController.navigate(Screen.Detail.createRoute(event.id))
+                    },
+                    onDeleteEvent = onDeleteEvent,
+                )
             }
             composable(
                 route = Screen.Editor.route,
@@ -135,79 +133,88 @@ fun MainApp(
             exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
             modifier = Modifier.align(Alignment.BottomCenter),
         ) {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+            Surface(
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
                 tonalElevation = 0.dp,
-                modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // Item 1: Home
-                val isHomeSelected = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true
-                CustomNavBarItem(
-                    icon = { NavIconWithPulse(icon = Screen.Home.icon, isSelected = isHomeSelected) },
-                    label = { 
-                        Text(
-                            text = Screen.Home.label,
-                            color = if (isHomeSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelMedium,
-                        ) 
-                    },
-                    selected = isHomeSelected,
-                    onClick = {
-                        if (!isHomeSelected) {
-                            navController.navigate(Screen.Home.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                Row(
+                    modifier = Modifier
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .height(80.dp)
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Item 1: Home
+                    val isHomeSelected = currentDestination?.hierarchy?.any { it.route == Screen.Home.route } == true
+                    CustomNavBarItem(
+                        icon = { NavIconWithPulse(icon = Screen.Home.icon, isSelected = isHomeSelected) },
+                        label = { 
+                            Text(
+                                text = Screen.Home.label,
+                                color = if (isHomeSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelMedium,
+                            ) 
+                        },
+                        selected = isHomeSelected,
+                        onClick = {
+                            if (!isHomeSelected) {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         }
-                    }
-                )
+                    )
 
-                // Item 2: Detail
-                val isDetailSelected = (currentDestination?.route?.startsWith("detail") == true)
-                CustomNavBarItem(
-                    icon = { NavIconWithPulse(icon = Screen.Detail.icon, isSelected = isDetailSelected) },
-                    label = { 
-                        Text(
-                            Screen.Detail.label, 
-                            color = if (isDetailSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelMedium
-                        ) 
-                    },
-                    selected = isDetailSelected,
-                    onClick = {
-                        if (events.isNotEmpty()) {
-                            navController.navigate(Screen.Detail.createRoute(events.first().id)) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                    // Item 2: Detail
+                    val isDetailSelected = (currentDestination?.route?.startsWith("detail") == true)
+                    CustomNavBarItem(
+                        icon = { NavIconWithPulse(icon = Screen.Detail.icon, isSelected = isDetailSelected) },
+                        label = { 
+                            Text(
+                                Screen.Detail.label, 
+                                color = if (isDetailSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelMedium
+                            ) 
+                        },
+                        selected = isDetailSelected,
+                        onClick = {
+                            if (events.isNotEmpty()) {
+                                navController.navigate(Screen.Detail.createRoute(events.first().id)) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         }
-                    }
-                )
+                    )
 
-                // Item 3: Settings
-                val isSettingsSelected = currentDestination?.hierarchy?.any { it.route == Screen.Settings.route } == true
-                CustomNavBarItem(
-                    icon = { NavIconWithPulse(icon = Screen.Settings.icon, isSelected = isSettingsSelected) },
-                    label = { 
-                        Text(
-                            text = Screen.Settings.label,
-                            color = if (isSettingsSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.labelMedium,
-                        ) 
-                    },
-                    selected = isSettingsSelected,
-                    onClick = {
-                        if (!isSettingsSelected) {
-                            navController.navigate(Screen.Settings.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                    // Item 3: Settings
+                    val isSettingsSelected = currentDestination?.hierarchy?.any { it.route == Screen.Settings.route } == true
+                    CustomNavBarItem(
+                        icon = { NavIconWithPulse(icon = Screen.Settings.icon, isSelected = isSettingsSelected) },
+                        label = { 
+                            Text(
+                                text = Screen.Settings.label,
+                                color = if (isSettingsSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.labelMedium,
+                            ) 
+                        },
+                        selected = isSettingsSelected,
+                        onClick = {
+                            if (!isSettingsSelected) {
+                                navController.navigate(Screen.Settings.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
