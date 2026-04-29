@@ -3,6 +3,7 @@ package com.kippu.trace.ui.screens
 import android.app.Activity
 import android.os.Build
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -28,12 +29,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,6 +65,7 @@ fun DetailScreen(
     val view = LocalView.current
     var showControls by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
+    var captureTrigger by remember { mutableIntStateOf(0) }
     val sheetState = rememberModalBottomSheetState()
 
     if (!view.isInEditMode) {
@@ -118,11 +124,15 @@ fun DetailScreen(
                 key = { events[it].id },
                 userScrollEnabled = !showBottomSheet
             ) { pageIndex ->
-                EventDetailItem(event = events[pageIndex])
+                EventDetailItem(
+                    event = events[pageIndex],
+                    shouldCapture = captureTrigger,
+                    isCurrentPage = pagerState.currentPage == pageIndex,
+                    onCaptured = { captureTrigger = 0 }
+                )
             }
         }
 
-        // Dark Overlay when controls are shown
         AnimatedVisibility(
             visible = showControls,
             enter = fadeIn(),
@@ -135,7 +145,6 @@ fun DetailScreen(
             )
         }
 
-        // Top Controls
         AnimatedVisibility(
             visible = showControls,
             enter = fadeIn(),
@@ -190,7 +199,11 @@ fun DetailScreen(
                                 title = "保存图片",
                                 subtitle = "保存为不含 UI 的纯净长图",
                                 shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                                onClick = { showBottomSheet = false }
+                                onClick = { 
+                                    showBottomSheet = false
+                                    showControls = false
+                                    captureTrigger++
+                                }
                             )
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 24.dp),
@@ -235,7 +248,7 @@ fun DetailActionItem(
     Surface(
         onClick = onClick,
         color = Color.Transparent,
-        shape = shape, // Applying shape to the surface to clip the ripple
+        shape = shape,
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -321,12 +334,42 @@ fun IconButtonWithPulse(
 }
 
 @Composable
-fun EventDetailItem(event: DateEvent) {
+fun EventDetailItem(
+    event: DateEvent,
+    shouldCapture: Int = 0,
+    isCurrentPage: Boolean = false,
+    onCaptured: () -> Unit = {}
+) {
+    val context = LocalContext.current
+    val graphicsLayer = rememberGraphicsLayer()
     val targetLocalDate = Instant.ofEpochMilli(event.targetDate).atZone(ZoneId.systemDefault()).toLocalDate()
     val days = ChronoUnit.DAYS.between(LocalDate.now(), targetLocalDate).let { if (it < 0) -it else it }
 
     val animatedDays = remember { Animatable(0f) }
     var detailedTime by remember { mutableStateOf(TimeUtils.getDetailedTime(event.targetDate)) }
+
+    LaunchedEffect(shouldCapture) {
+        if (shouldCapture > 0 && isCurrentPage) {
+            try {
+                delay(200)
+                val bitmap = graphicsLayer.toImageBitmap()
+                val success = com.kippu.trace.utils.ImageUtils.saveBitmapToGallery(
+                    context = context,
+                    imageBitmap = bitmap,
+                    fileName = "TimeTrace_${event.title}_${System.currentTimeMillis()}"
+                )
+                if (success) {
+                    Toast.makeText(context, "图片已保存至相册", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "保存失败", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                onCaptured()
+            }
+        }
+    }
 
     LaunchedEffect(event.id) {
         animatedDays.snapTo(0f)
@@ -343,7 +386,15 @@ fun EventDetailItem(event: DateEvent) {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .drawWithContent {
+            graphicsLayer.record {
+                this@drawWithContent.drawContent()
+            }
+            drawLayer(graphicsLayer)
+        }
+    ) {
         if (event.backgroundUri != null) {
             AsyncImage(
                 model = event.backgroundUri,
