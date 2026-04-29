@@ -120,6 +120,7 @@ fun MainApp(
                     events = events,
                     initialEventId = eventId,
                     onBack = { navController.popBackStack() },
+                    onUpdateEvent = { onAddEvent(it) }
                 )
             }
             composable(route = Screen.Settings.route) {

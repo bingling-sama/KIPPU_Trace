@@ -1,9 +1,12 @@
 package com.kippu.trace.ui.screens
 
 import android.app.Activity
+import android.net.Uri
 import android.os.Build
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -46,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import coil.compose.AsyncImage
 import com.kippu.trace.model.DateEvent
+import com.kippu.trace.utils.FileUtils
 import com.kippu.trace.utils.TimeUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -60,13 +64,35 @@ import java.util.Locale
 fun DetailScreen(
     events: List<DateEvent>,
     initialEventId: Long,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onUpdateEvent: (DateEvent) -> Unit = {}
 ) {
+    val context = LocalContext.current
     val view = LocalView.current
     var showControls by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
     var captureTrigger by remember { mutableIntStateOf(0) }
     val sheetState = rememberModalBottomSheetState()
+
+    val initialIndex = remember(events, initialEventId) {
+        events.indexOfFirst { it.id == initialEventId }.coerceAtLeast(0)
+    }
+    val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { events.size })
+
+    // Image Picker for changing background
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val currentEvent = events.getOrNull(pagerState.currentPage)
+            if (currentEvent != null) {
+                val localPath = FileUtils.saveImageToInternalStorage(context, it)
+                if (localPath != null) {
+                    onUpdateEvent(currentEvent.copy(backgroundUri = localPath))
+                }
+            }
+        }
+    }
 
     if (!view.isInEditMode) {
         DisposableEffect(androidx.compose.foundation.isSystemInDarkTheme()) {
@@ -102,9 +128,6 @@ fun DetailScreen(
         }
         return
     }
-
-    val initialIndex = events.indexOfFirst { it.id == initialEventId }.coerceAtLeast(0)
-    val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { events.size })
 
     androidx.activity.compose.BackHandler(onBack = onBack)
 
@@ -215,7 +238,10 @@ fun DetailScreen(
                                 title = "更换背景",
                                 subtitle = "从相册选择新的背景图",
                                 shape = RectangleShape,
-                                onClick = { showBottomSheet = false }
+                                onClick = { 
+                                    showBottomSheet = false
+                                    imagePickerLauncher.launch("image/*")
+                                }
                             )
                             HorizontalDivider(
                                 modifier = Modifier.padding(horizontal = 24.dp),
@@ -397,7 +423,10 @@ fun EventDetailItem(
     ) {
         if (event.backgroundUri != null) {
             AsyncImage(
-                model = event.backgroundUri,
+                model = coil.request.ImageRequest.Builder(LocalContext.current)
+                    .data(event.backgroundUri)
+                    .crossfade(1000)
+                    .build(),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
