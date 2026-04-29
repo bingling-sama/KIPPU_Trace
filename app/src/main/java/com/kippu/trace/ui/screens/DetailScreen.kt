@@ -10,6 +10,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,10 +39,9 @@ fun DetailScreen(
     initialEventId: Long,
     onBack: () -> Unit
 ) {
-    val darkTheme = isSystemInDarkTheme()
     val view = LocalView.current
     if (!view.isInEditMode) {
-        DisposableEffect(darkTheme) {
+        DisposableEffect(isSystemInDarkTheme()) {
             val window = (view.context as Activity).window
             val insetsController = WindowCompat.getInsetsController(window, view)
             
@@ -78,6 +79,8 @@ fun DetailScreen(
 
     val initialIndex = events.indexOfFirst { it.id == initialEventId }.coerceAtLeast(0)
     val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { events.size })
+
+    androidx.activity.compose.BackHandler(onBack = onBack)
 
     Surface(modifier = Modifier.fillMaxSize(), color = Color.Black) {
         VerticalPager(

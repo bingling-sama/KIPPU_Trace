@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -36,6 +37,7 @@ import com.kippu.trace.model.DateEvent
 import com.kippu.trace.model.DisplayMode
 import com.kippu.trace.ui.components.PinnedEventCard
 import com.kippu.trace.ui.theme.KIPPU_TraceTheme
+import com.kippu.trace.utils.FileUtils
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -48,6 +50,7 @@ fun EditorScreen(
     onDismiss: () -> Unit,
     onSave: (DateEvent) -> Unit
 ) {
+    val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var selectedDate by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var backgroundUri by remember { mutableStateOf<String?>(null) }
@@ -61,7 +64,12 @@ fun EditorScreen(
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { backgroundUri = it.toString() }
+        uri?.let {
+            val localPath = FileUtils.saveImageToInternalStorage(context, it)
+            if (localPath != null) {
+                backgroundUri = localPath
+            }
+        }
     }
 
     val targetLocalDate = remember(selectedDate) {

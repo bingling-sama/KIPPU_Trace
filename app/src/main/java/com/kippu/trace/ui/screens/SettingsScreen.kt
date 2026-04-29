@@ -1,7 +1,6 @@
 package com.kippu.trace.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -23,17 +21,29 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen() {
-    var showDevelopingDialog by remember { mutableStateOf(false) }
-    var developingFeatureName by remember { mutableStateOf("") }
+fun SettingsScreen(
+    modifier: Modifier = Modifier
+) {
+    val showDevelopingDialog = remember { mutableStateOf(false) }
+    val developingFeatureName = remember { mutableStateOf("") }
 
-    if (showDevelopingDialog) {
+    if (showDevelopingDialog.value) {
         AlertDialog(
-            onDismissRequest = { showDevelopingDialog = false },
+            onDismissRequest = { 
+                showDevelopingDialog.value = false 
+            },
             title = { Text("提示") },
-            text = { Text("“$developingFeatureName”功能正在开发中，敬请期待！") },
+            text = { 
+                val text = if (developingFeatureName.value == "关于时痕") 
+                    "时痕 (TimeTrace)\nMaintained by KIPPU" 
+                else 
+                    "“${developingFeatureName.value}”功能正在开发中，敬请期待！"
+                Text(text) 
+            },
             confirmButton = {
-                TextButton(onClick = { showDevelopingDialog = false }) {
+                TextButton(onClick = { 
+                    showDevelopingDialog.value = false 
+                }) {
                     Text("确定")
                 }
             }
@@ -41,6 +51,7 @@ fun SettingsScreen() {
     }
 
     Scaffold(
+        modifier = modifier,
         topBar = {
             CenterAlignedTopAppBar(
                 title = { 
@@ -54,12 +65,12 @@ fun SettingsScreen() {
                 )
             )
         }
-    ) { padding ->
+    ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(padding)
+                .padding(innerPadding)
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -68,62 +79,86 @@ fun SettingsScreen() {
             item {
                 SettingsSection(title = "通用设置") {
                     SettingsItem(
-                        icon = Icons.Default.DarkMode,
                         title = "深色模式",
-                        subtitle = "跟随系统",
-                        onClick = { 
-                            developingFeatureName = "深色模式"
-                            showDevelopingDialog = true 
-                        }
-                    )
+                        icon = Icons.Default.DarkMode,
+                        subtitle = "跟随系统"
+                    ) { 
+                        developingFeatureName.value = "深色模式"
+                        showDevelopingDialog.value = true 
+                    }
                     SettingsItem(
-                        icon = Icons.Default.Palette,
                         title = "主题配色",
-                        subtitle = "时痕经典",
-                        onClick = { 
-                            developingFeatureName = "主题配色"
-                            showDevelopingDialog = true 
-                        }
-                    )
+                        icon = Icons.Default.Palette,
+                        subtitle = "时痕经典"
+                    ) { 
+                        developingFeatureName.value = "主题配色"
+                        showDevelopingDialog.value = true 
+                    }
                 }
             }
 
             item {
                 SettingsSection(title = "数据安全") {
                     SettingsItem(
-                        icon = Icons.Default.Backup,
                         title = "数据备份与恢复",
-                        subtitle = "本地导入/导出",
-                        onClick = { 
-                            developingFeatureName = "数据备份与恢复"
-                            showDevelopingDialog = true 
-                        }
-                    )
+                        icon = Icons.Default.Backup,
+                        subtitle = "本地导入/导出"
+                    ) { 
+                        developingFeatureName.value = "数据备份与恢复"
+                        showDevelopingDialog.value = true 
+                    }
                 }
             }
 
             item {
                 SettingsSection(title = "关于") {
                     SettingsItem(
-                        icon = Icons.Default.ChevronRight,
                         title = "关于时痕",
-                        subtitle = "Version 1.0.0",
-                        onClick = { 
-                            developingFeatureName = "关于时痕"
-                            showDevelopingDialog = true 
-                        }
+                        icon = Icons.Default.ChevronRight,
+                        subtitle = "1.0.0 Origin"
+                    ) { 
+                        developingFeatureName.value = "关于时痕"
+                        showDevelopingDialog.value = true 
+                    }
+                }
+            }
+            
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 32.dp, bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "TimeTrace",
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                            letterSpacing = 2.sp
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "© 2026 KIPPU. Licensed under MIT.",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
                     )
                 }
             }
             
-            item { Spacer(modifier = Modifier.height(100.dp)) } // Space for bottom bar
+            item { Spacer(modifier = Modifier.height(100.dp)) }
         }
     }
 }
 
 @Composable
-fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column {
+fun SettingsSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Column(modifier = modifier) {
         Text(
             text = title,
             style = MaterialTheme.typography.labelLarge,
@@ -146,15 +181,16 @@ fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) 
 
 @Composable
 fun SettingsItem(
-    icon: ImageVector,
     title: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
     subtitle: String? = null,
     onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
         color = Color.Transparent,
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier

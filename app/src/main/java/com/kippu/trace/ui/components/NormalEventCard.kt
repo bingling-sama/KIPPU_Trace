@@ -13,7 +13,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kippu.trace.model.DateEvent
-import com.kippu.trace.model.DisplayMode
 import com.kippu.trace.utils.TimeUtils
 import java.time.Instant
 import java.time.LocalDate
