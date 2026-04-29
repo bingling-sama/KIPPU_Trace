@@ -3,9 +3,9 @@ package com.kippu.trace.utils
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.Period
 import java.time.ZoneId
+import java.time.ZonedDateTime
 
 data class RelativeTimeResult(
     val years: Int = 0,
@@ -24,27 +24,25 @@ object TimeUtils {
 
     /**
      * Calculates Year/Month/Week/Day breakdown for Home Screen.
-     * Rules:
-     * - Only show non-zero units.
-     * - 0 years -> don't show "Year"
-     * - 0 months -> don't show "Month"
-     * - 0 weeks -> don't show "Week"
-     * - Exactly 1 week -> don't show "Day"
+     * Correctly handles system timezone to avoid 8-hour offset.
      */
     fun getRelativeTime(targetDateMillis: Long): RelativeTimeResult {
+        val systemZone = ZoneId.systemDefault()
+        
+        // Convert UTC midnight from DatePicker to local date
         val targetDate = Instant.ofEpochMilli(targetDateMillis)
-            .atZone(ZoneId.systemDefault())
+            .atZone(ZoneId.of("UTC"))
             .toLocalDate()
-        val today = LocalDate.now()
+        val today = LocalDate.now(systemZone)
         
         val start = if (today.isBefore(targetDate)) today else targetDate
         val end = if (today.isBefore(targetDate)) targetDate else today
         
         val period = Period.between(start, end)
         
-        var remainingDays = period.days
-        val weeks = remainingDays / 7
-        val days = remainingDays % 7
+        val totalDays = period.days
+        val weeks = totalDays / 7
+        val days = totalDays % 7
         
         return RelativeTimeResult(
             years = period.years,
@@ -67,17 +65,24 @@ object TimeUtils {
 
     /**
      * Gets live H/M/S breakdown for Detail Screen.
+     * Aligns target date to local midnight (e.g. 00:00 Beijing Time).
      */
     fun getDetailedTime(targetDateMillis: Long): DetailedTimeResult {
-        val now = LocalDateTime.now()
-        val target = Instant.ofEpochMilli(targetDateMillis)
-            .atZone(ZoneId.systemDefault())
-            .toLocalDateTime()
+        val systemZone = ZoneId.systemDefault()
+        
+        // 1. Current local time
+        val now = ZonedDateTime.now(systemZone)
+        
+        // 2. Interpret DatePicker UTC midnight as local midnight
+        val targetMidnight = Instant.ofEpochMilli(targetDateMillis)
+            .atZone(ZoneId.of("UTC"))
+            .toLocalDate()
+            .atStartOfDay(systemZone)
             
-        val duration = if (now.isBefore(target)) {
-            Duration.between(now, target)
+        val duration = if (now.isBefore(targetMidnight)) {
+            Duration.between(now, targetMidnight)
         } else {
-            Duration.between(target, now)
+            Duration.between(targetMidnight, now)
         }
         
         val totalSeconds = duration.seconds

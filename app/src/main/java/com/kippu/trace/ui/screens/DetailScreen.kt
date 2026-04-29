@@ -49,6 +49,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import coil.compose.AsyncImage
 import com.kippu.trace.model.DateEvent
+import com.kippu.trace.model.DisplayMode
+import com.kippu.trace.ui.theme.YunliWhite
 import com.kippu.trace.utils.FileUtils
 import com.kippu.trace.utils.TimeUtils
 import kotlinx.coroutines.delay
@@ -73,6 +75,10 @@ fun DetailScreen(
     var showBottomSheet by remember { mutableStateOf(false) }
     var captureTrigger by remember { mutableIntStateOf(0) }
     val sheetState = rememberModalBottomSheetState()
+    
+    // Date Picker State
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
 
     val initialIndex = remember(events, initialEventId) {
         events.indexOfFirst { it.id == initialEventId }.coerceAtLeast(0)
@@ -253,8 +259,72 @@ fun DetailScreen(
                                 title = "调整日期",
                                 subtitle = "修改此事件的目标日期",
                                 shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp),
-                                onClick = { showBottomSheet = false }
+                                onClick = { 
+                                    showBottomSheet = false
+                                    showDatePicker = true
+                                }
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Compact Date Picker Dialog
+        if (showDatePicker) {
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { showDatePicker = false },
+                properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = YunliWhite,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier
+                        .width(320.dp) // Set custom width for the white container
+                        .wrapContentHeight()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(bottom = 12.dp, start = 8.dp, end = 8.dp, top = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        DatePicker(
+                            state = datePickerState,
+                            title = null,
+                            headline = null,
+                            showModeToggle = false,
+                            colors = DatePickerDefaults.colors(
+                                containerColor = YunliWhite,
+                                dividerColor = Color.Transparent
+                            ),
+                            modifier = Modifier.scale(1.0f) // Scale down internal content slightly
+                        )
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            TextButton(onClick = { showDatePicker = false }) {
+                                Text("取消")
+                            }
+                            TextButton(onClick = {
+                                val selectedMillis = datePickerState.selectedDateMillis
+                                if (selectedMillis != null) {
+                                    val currentEvent = events.getOrNull(pagerState.currentPage)
+                                    if (currentEvent != null) {
+                                        val isFuture = selectedMillis > System.currentTimeMillis()
+                                        val newMode = if (isFuture) DisplayMode.COUNT_DOWN else DisplayMode.ACCUMULATE
+                                        onUpdateEvent(currentEvent.copy(
+                                            targetDate = selectedMillis,
+                                            isFuture = isFuture,
+                                            mode = newMode
+                                        ))
+                                    }
+                                }
+                                showDatePicker = false
+                            }) {
+                                Text("确定")
+                            }
                         }
                     }
                 }
@@ -397,15 +467,21 @@ fun EventDetailItem(
         }
     }
 
-    LaunchedEffect(event.id) {
-        animatedDays.snapTo(0f)
-        animatedDays.animateTo(
-            targetValue = days.toFloat(),
-            animationSpec = tween(durationMillis = 800)
-        )
+    // Combined effect for date changes and screen entry/paging
+    LaunchedEffect(event.id, event.targetDate, isCurrentPage) {
+        if (isCurrentPage) {
+            animatedDays.snapTo(0f)
+            animatedDays.animateTo(
+                targetValue = days.toFloat(),
+                animationSpec = tween(durationMillis = 800)
+            )
+        } else {
+            // Reset to 0 when not visible to prepare for next time
+            animatedDays.snapTo(0f)
+        }
     }
 
-    LaunchedEffect(event.id) {
+    LaunchedEffect(event.id, event.targetDate) {
         while (true) {
             detailedTime = TimeUtils.getDetailedTime(event.targetDate)
             delay(1000)

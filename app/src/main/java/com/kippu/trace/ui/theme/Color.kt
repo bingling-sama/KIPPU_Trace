@@ -9,6 +9,7 @@ val Tertiary = Color(0xFFBDBDBD)
 
 val Background = Color(0xFFF8F9FA)
 val Surface = Color(0xFFFFFFFF)
+val YunliWhite = Color(0xFFF2F3F5) // 云璃白：一种温润、极简的浅灰色/白
 val OnPrimary = Color(0xFFFFFFFF)
 val OnSecondary = Color(0xFFFFFFFF)
 val OnTertiary = Color(0xFFFFFFFF)

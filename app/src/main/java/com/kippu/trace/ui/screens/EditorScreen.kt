@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
@@ -32,11 +33,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.kippu.trace.model.DateEvent
 import com.kippu.trace.model.DisplayMode
 import com.kippu.trace.ui.components.PinnedEventCard
 import com.kippu.trace.ui.theme.KIPPU_TraceTheme
+import com.kippu.trace.ui.theme.YunliWhite
 import com.kippu.trace.utils.FileUtils
 import java.time.Instant
 import java.time.LocalDate
@@ -93,19 +97,50 @@ fun EditorScreen(
     if (showDatePicker.value) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
 
-        DatePickerDialog(
+        Dialog(
             onDismissRequest = { showDatePicker.value = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { selectedDate = it }
-                    showDatePicker.value = false
-                }) { Text("确定") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker.value = false }) { Text("取消") }
-            }
+            properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
-            DatePicker(state = datePickerState)
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = YunliWhite,
+                tonalElevation = 0.dp,
+                modifier = Modifier
+                    .width(320.dp)
+                    .wrapContentHeight()
+            ) {
+                Column(
+                    modifier = Modifier.padding(bottom = 12.dp, start = 8.dp, end = 8.dp, top = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    DatePicker(
+                        state = datePickerState,
+                        title = null,
+                        headline = null,
+                        showModeToggle = false,
+                        colors = DatePickerDefaults.colors(
+                            containerColor = YunliWhite,
+                            dividerColor = Color.Transparent
+                        ),
+                        modifier = Modifier.scale(1.0f)
+                    )
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showDatePicker.value = false }) {
+                            Text("取消")
+                        }
+                        TextButton(onClick = {
+                            datePickerState.selectedDateMillis?.let { selectedDate = it }
+                            showDatePicker.value = false
+                        }) {
+                            Text("确定")
+                        }
+                    }
+                }
+            }
         }
     }
 
