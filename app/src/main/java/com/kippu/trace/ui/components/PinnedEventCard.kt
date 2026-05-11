@@ -84,19 +84,20 @@ fun PinnedEventCard(
                 val visualWidth = TextUtils.getVisualWidth(event.title)
                 
                 if (visualWidth > 15.0f) {
-                    // "Seriously Excessive" Layout: Split Left/Right with Title Stacking
+                    // Type 3: 4 lines with ultra-visible fade
                     Row(
                         modifier = Modifier.fillMaxSize(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Bottom
                     ) {
-                        // Title on the Left (Stacks and Wraps)
                         Text(
                             text = TextUtils.forceCharacterWrap(event.title),
                             modifier = Modifier
                                 .weight(1f)
+                                .fillMaxHeight()
+                                .wrapContentHeight(Alignment.Bottom)
                                 .padding(end = 16.dp)
-                                .fadeLastLineEdge(0.3f, 0.25f),
+                                .fadeLastLineEdge(fadeWidth = 48.dp),
                             maxLines = 4,
                             overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
                             style = MaterialTheme.typography.titleLarge.copy(
@@ -109,7 +110,7 @@ fun PinnedEventCard(
                             )
                         )
 
-                        // Days and Date on the Right (Right-Aligned)
+                        // Days and Date on the Right
                         Column(
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.spacedBy((-4).dp)
@@ -143,15 +144,15 @@ fun PinnedEventCard(
                         }
                     }
                 } else {
-                    // Intermediate Collision: title > 5.5 chars OR title > 4.0 chars and many days
+                    // Type 2: Title ON TOP of Days
                     val isCollision = visualWidth > 5.5f || (visualWidth >= 4.0f && days >= 1000)
                     
                     if (isCollision) {
-                        // Optimized Layout: Title ON TOP of Days
                         Column(
                             modifier = Modifier
-                                .align(Alignment.BottomStart),
-                            verticalArrangement = Arrangement.spacedBy(4.dp) // Reasonable gap between blocks
+                                .align(Alignment.BottomStart)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 text = event.title,
@@ -159,12 +160,12 @@ fun PinnedEventCard(
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .fadeRightEdge(0.25f),
+                                    .fadeRightEdge(fadeWidth = 48.dp),
                                 style = MaterialTheme.typography.headlineSmall.copy(
                                     color = Color.White,
                                     shadow = Shadow(color = Color.Black.copy(alpha = 0.5f), blurRadius = 8f),
                                     fontWeight = FontWeight.Bold,
-                                    lineHeight = 28.sp // Tighter line spacing for title text
+                                    lineHeight = 28.sp
                                 )
                             )
 
@@ -194,63 +195,69 @@ fun PinnedEventCard(
                                     color = Color.White.copy(alpha = 0.7f),
                                     fontWeight = FontWeight.Normal
                                 ),
-                                modifier = Modifier.offset(y = (-4).dp) // Slight adjustment to pull date closer to unit
+                                modifier = Modifier.offset(y = (-4).dp)
                             )
                         }
                     } else {
-                        // Standard Layout
-                        Column(modifier = Modifier.align(Alignment.BottomStart)) {
-                            Text(
-                                text = event.title,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .fadeRightEdge(0.25f),
-                                style = MaterialTheme.typography.headlineLarge.copy(
-                                    color = Color.White,
-                                    shadow = Shadow(color = Color.Black.copy(alpha = 0.5f), blurRadius = 8f)
-                                )
-                            )
-                            Text(
-                                text = targetLocalDate.toString(),
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    color = Color.White.copy(alpha = 0.8f),
-                                    fontWeight = FontWeight.Normal
-                                )
-                            )
-                        }
-
+                        // Type 1: Short - No Fade
                         Row(
-                            modifier = Modifier.align(Alignment.BottomEnd),
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.Bottom
                         ) {
-                            Text(
-                                text = days.toString(),
-                                style = MaterialTheme.typography.displayMedium.copy(
-                                    color = Color.White,
-                                    shadow = Shadow(color = Color.Black.copy(alpha = 0.5f), blurRadius = 12f)
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(end = 16.dp)
+                            ) {
+                                Text(
+                                    text = event.title,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
+                                    style = MaterialTheme.typography.headlineLarge.copy(
+                                        color = Color.White,
+                                        shadow = Shadow(color = Color.Black.copy(alpha = 0.5f), blurRadius = 8f)
+                                    )
                                 )
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "天",
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    color = Color.White.copy(alpha = 0.8f),
-                                    fontSize = 16.sp
-                                ),
-                                modifier = Modifier.padding(bottom = 12.dp)
-                            )
+                                Text(
+                                    text = targetLocalDate.toString(),
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        color = Color.White.copy(alpha = 0.8f),
+                                        fontWeight = FontWeight.Normal
+                                    )
+                                )
+                            }
+
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = days.toString(),
+                                    style = MaterialTheme.typography.displayMedium.copy(
+                                        color = Color.White,
+                                        shadow = Shadow(color = Color.Black.copy(alpha = 0.5f), blurRadius = 12f)
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "天",
+                                    style = MaterialTheme.typography.labelMedium.copy(
+                                        color = Color.White.copy(alpha = 0.8f),
+                                        fontSize = 16.sp
+                                    ),
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            // Pinned Badge moved outside to allow finer padding control
+            // Pinned Badge
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(16.dp) // Closer to edge to align with 24dp corners
+                    .padding(16.dp)
                     .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
@@ -274,7 +281,7 @@ fun PinnedEventCardPreview() {
         isPinned = true,
         backgroundUri = "https://images.unsplash.com/photo-1490730141103-6cac27aaab94"
     )
-    com.kippu.trace.ui.theme.KIPPU_TraceTheme {
+    MaterialTheme {
         Box(modifier = Modifier.padding(16.dp)) {
             PinnedEventCard(event = mockEvent, onClick = {})
         }

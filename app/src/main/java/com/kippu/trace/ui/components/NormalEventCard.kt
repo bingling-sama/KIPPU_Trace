@@ -40,30 +40,29 @@ fun NormalEventCard(
     val prefix = if (event.isFuture) "还有" else "已经"
 
     val visualWidth = TextUtils.getVisualWidth(event.title)
-    // More sensitive collision: title > 6 chars OR (title > 4 chars AND days > 1000)
-    val isCollision = visualWidth > 6.0f || (visualWidth >= 4.0f && daysTotal >= 1000)
+    // Threshold adjusted to match user feedback (~9-10 chars)
+    val isCollision = visualWidth > 15.0f || (visualWidth >= 10.0f && daysTotal >= 1000)
 
     Card(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .height(if (isCollision) 130.dp else 100.dp), // Increased height for stacked layout
+            .height(if (isCollision) 130.dp else 100.dp), 
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         if (isCollision) {
-            // New Collision Layout: Title on top, Days bottom-right
+            // Stacked Layout
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
-                // Title & Description: Top-Left
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .fillMaxWidth(0.6f) // Ensure title doesn't hit days before fading
+                        .fillMaxWidth() 
                 ) {
                     Text(
                         text = event.title,
@@ -71,7 +70,7 @@ fun NormalEventCard(
                         overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fadeRightEdge(0.3f),
+                            .fadeRightEdge(fadeWidth = 48.dp), // Massive fade
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -119,7 +118,7 @@ fun NormalEventCard(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 8.dp)
+                        .padding(end = 16.dp)
                 ) {
                     Text(
                         text = event.title,
@@ -127,7 +126,7 @@ fun NormalEventCard(
                         overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fadeRightEdge(0.3f),
+                            .fadeRightEdge(fadeWidth = 48.dp), // Massive fade
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
