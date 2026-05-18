@@ -40,8 +40,8 @@ fun NormalEventCard(
     val prefix = if (event.isFuture) "还有" else "已经"
 
     val visualWidth = TextUtils.getVisualWidth(event.title)
-    // Threshold adjusted to match user feedback (~9-10 chars)
-    val isCollision = visualWidth > 15.0f || (visualWidth >= 10.0f && daysTotal >= 1000)
+    // 标题超过 8 个字或视觉宽度超过阈值时启用堆叠排版
+    val isCollision = event.title.length > 8 || visualWidth > 15.0f || (visualWidth >= 10.0f && daysTotal >= 1000)
 
     Card(
         onClick = onClick,
@@ -59,32 +59,31 @@ fun NormalEventCard(
                     .fillMaxSize()
                     .padding(horizontal = 24.dp, vertical = 16.dp)
             ) {
-                Column(
+                // Title at the Top
+                Text(
+                    text = event.title,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .fillMaxWidth() 
-                ) {
-                    Text(
-                        text = event.title,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Clip,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fadeRightEdge(fadeWidth = 48.dp), // Massive fade
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        .fillMaxWidth()
+                        .fadeRightEdge(fadeWidth = 48.dp),
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = "$prefix $timeDescription",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    )
-                }
+                )
 
-                // Days Count: Bottom-Right
+                // Date Description: Moved to Bottom-Left
+                Text(
+                    text = "$prefix $timeDescription",
+                    modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 6.dp),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                )
+
+                // Days Count: Stays at Bottom-Right
                 Row(
                     modifier = Modifier.align(Alignment.BottomEnd),
                     verticalAlignment = Alignment.Bottom
