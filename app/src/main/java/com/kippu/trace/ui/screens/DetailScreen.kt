@@ -85,14 +85,21 @@ fun DetailScreen(
     val initialIndex = remember(events, initialEventId) {
         events.indexOfFirst { it.id == initialEventId }.coerceAtLeast(0)
     }
-    val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { events.size })
+    
+    // 无限循环逻辑
+    // 虚拟的巨大页数，让用户可以向上下下不断滑动
+    val virtualPageCount = if (events.size > 1) 1000000 else events.size
+    val initialPage = if (events.size > 1) (virtualPageCount / 2) - (virtualPageCount / 2 % events.size) + initialIndex else initialIndex
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { virtualPageCount })
 
     // 图片选择器
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            val currentEvent = events.getOrNull(pagerState.currentPage)
+            // 将虚拟页码映射至数据源索引
+            val realIndex = pagerState.currentPage % events.size
+            val currentEvent = events.getOrNull(realIndex)
             if (currentEvent != null) {
                 val localPath = FileUtils.saveImageToInternalStorage(context, it)
                 if (localPath != null) {
@@ -172,11 +179,13 @@ fun DetailScreen(
             VerticalPager(
                 state = pagerState,
                 modifier = Modifier.fillMaxSize(),
-                key = { events[it].id },
+                key = { if (events.isNotEmpty()) events[it % events.size].id else it },
                 userScrollEnabled = !showBottomSheet
             ) { pageIndex ->
+                val realIndex = pageIndex % events.size
                 EventDetailItem(
-                    event = events[pageIndex],
+                    // 强制归位
+                    event = events[realIndex],
                     shouldCapture = captureTrigger,
                     isCurrentPage = pagerState.currentPage == pageIndex,
                     onCaptured = { captureTrigger = 0 }
@@ -374,7 +383,8 @@ fun DetailScreen(
                                 TextButton(onClick = {
                                     val selectedMillis = datePickerState.selectedDateMillis
                                     if (selectedMillis != null) {
-                                        val currentEvent = events.getOrNull(pagerState.currentPage)
+                                        val realIndex = pagerState.currentPage % events.size
+                                        val currentEvent = events.getOrNull(realIndex)
                                         if (currentEvent != null) {
                                             val isFuture = selectedMillis > System.currentTimeMillis()
                                             val newMode = if (isFuture) DisplayMode.COUNT_DOWN else DisplayMode.ACCUMULATE
@@ -613,7 +623,7 @@ fun EventDetailItem(
             Text(
                 text = annotatedTitle,
                 color = Color.White,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Light,
                     letterSpacing = 4.sp

@@ -73,6 +73,17 @@ fun HomeScreen(
     var editingEvent by remember { mutableStateOf<DateEvent?>(null) }
     val editSheetState = rememberModalBottomSheetState()
 
+    val editImagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val localPath = FileUtils.saveImageToInternalStorage(context, it)
+            if (localPath != null) {
+                editingEvent = editingEvent?.copy(backgroundUri = localPath)
+            }
+        }
+    }
+
     val lazyListState = rememberLazyListState()
 
     if (eventToDelete != null) {
@@ -130,7 +141,7 @@ fun HomeScreen(
                         onTrashClick = { eventToDelete = event },
                         onEditClick = { editingEvent = event }
                     ) {
-                        PinnedEventCard(event = event, onClick = { onEventClick(event) })
+                        PinnedEventCard(event = if (editingEvent?.id == event.id) editingEvent!! else event, onClick = { onEventClick(event) })
                     }
                 }
 
@@ -142,7 +153,7 @@ fun HomeScreen(
                         onTrashClick = { eventToDelete = event },
                         onEditClick = { editingEvent = event }
                     ) {
-                        NormalEventCard(event = event, onClick = { onEventClick(event) })
+                        NormalEventCard(event = if (editingEvent?.id == event.id) editingEvent!! else event, onClick = { onEventClick(event) })
                     }
                 }
             }
@@ -159,29 +170,22 @@ fun HomeScreen(
                 }
             }
         }
-        var editSelectedDate by remember { mutableLongStateOf(event.targetDate) }
-        var editIsPinned by remember { mutableStateOf(event.isPinned) }
-        var editMaskOpacity by remember { mutableFloatStateOf(event.maskOpacity) }
-        var editBackgroundUri by remember { mutableStateOf(event.backgroundUri) }
-        val editImagePickerLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.GetContent()
-        ) { uri: Uri? ->
-            uri?.let {
-                val localPath = FileUtils.saveImageToInternalStorage(context, it)
-                if (localPath != null) {
-                    editBackgroundUri = localPath
+        LaunchedEffect(titleState) {
+            snapshotFlow { titleState.text.toString() }
+                .collect { text ->
+                    editingEvent = editingEvent?.copy(title = text)
                 }
-            }
         }
-        var editMode by remember { mutableStateOf(event.mode) }
         val showEditDatePicker = remember { mutableStateOf(false) }
 
         if (showEditDatePicker.value) {
             EditDatePickerDialog(
-                initialDateMillis = editSelectedDate,
+                initialDateMillis = event.targetDate,
                 onConfirm = { millis ->
-                    editSelectedDate = millis
-                    editMode = if (millis > System.currentTimeMillis()) DisplayMode.COUNT_DOWN else DisplayMode.ACCUMULATE
+                    editingEvent = editingEvent?.copy(
+                        targetDate = millis,
+                        mode = if (millis > System.currentTimeMillis()) DisplayMode.COUNT_DOWN else DisplayMode.ACCUMULATE
+                    )
                     showEditDatePicker.value = false
                 },
                 onDismiss = { showEditDatePicker.value = false }
@@ -234,8 +238,8 @@ fun HomeScreen(
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    val editTargetLocalDate = remember(editSelectedDate) {
-                        Instant.ofEpochMilli(editSelectedDate).atZone(ZoneId.systemDefault()).toLocalDate()
+                    val editTargetLocalDate = remember(event.targetDate) {
+                        Instant.ofEpochMilli(event.targetDate).atZone(ZoneId.systemDefault()).toLocalDate()
                     }
                     val editFormattedDate = remember(editTargetLocalDate) {
                         editTargetLocalDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
@@ -248,7 +252,7 @@ fun HomeScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                stringResource(if (editMode == DisplayMode.COUNT_DOWN) R.string.target_date_label else R.string.start_date_label),
+                                stringResource(if (event.mode == DisplayMode.COUNT_DOWN) R.string.target_date_label else R.string.start_date_label),
                                 style = MaterialTheme.typography.labelMedium
                             )
                             Text(editFormattedDate, style = MaterialTheme.typography.titleMedium)
@@ -267,7 +271,7 @@ fun HomeScreen(
                                 Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    stringResource(if (editBackgroundUri == null) R.string.tap_to_select else R.string.selected_label),
+                                    stringResource(if (event.backgroundUri == null) R.string.tap_to_select else R.string.selected_label),
                                     style = MaterialTheme.typography.titleMedium
                                 )
                             }
@@ -275,7 +279,7 @@ fun HomeScreen(
                     }
                 }
 
-                ModeSwitcher(selectedMode = editMode, onModeSelected = { editMode = it })
+                ModeSwitcher(selectedMode = event.mode, onModeSelected = { editingEvent = editingEvent?.copy(mode = it) })
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -283,7 +287,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(stringResource(R.string.pin_to_top), style = MaterialTheme.typography.titleSmall)
-                    Switch(checked = editIsPinned, onCheckedChange = { editIsPinned = it })
+                    Switch(checked = event.isPinned, onCheckedChange = { editingEvent = editingEvent?.copy(isPinned = it) })
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -293,11 +297,11 @@ fun HomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(stringResource(R.string.mask_intensity), style = MaterialTheme.typography.titleSmall)
-                        Text("${(editMaskOpacity * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary))
+                        Text("${((event.maskOpacity) * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.primary))
                     }
                     Slider(
-                        value = editMaskOpacity,
-                        onValueChange = { editMaskOpacity = it },
+                        value = event.maskOpacity,
+                        onValueChange = { editingEvent = editingEvent?.copy(maskOpacity = it) },
                         valueRange = 0.1f..0.9f,
                         modifier = Modifier.padding(horizontal = 8.dp),
                         colors = SliderDefaults.colors(
@@ -311,12 +315,7 @@ fun HomeScreen(
                         onUpdateEvent(
                             event.copy(
                                 title = titleState.text.toString().ifEmpty { context.getString(R.string.untitled) },
-                                targetDate = editSelectedDate,
-                                isFuture = editSelectedDate > System.currentTimeMillis(),
-                                mode = editMode,
-                                isPinned = editIsPinned,
-                                backgroundUri = editBackgroundUri,
-                                maskOpacity = editMaskOpacity
+                                isFuture = event.targetDate > System.currentTimeMillis()
                             )
                         )
                         editingEvent = null
@@ -325,6 +324,14 @@ fun HomeScreen(
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Text(stringResource(R.string.confirm), style = MaterialTheme.typography.labelLarge)
+                }
+
+                OutlinedButton(
+                    onClick = { editingEvent = null },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text(stringResource(R.string.cancel), style = MaterialTheme.typography.labelLarge)
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -419,7 +426,7 @@ fun SwipeActionWrapper(
                     imageVector = Icons.Default.Edit,
                     contentDescription = "Edit",
                     tint = MaterialTheme.colorScheme.primary.copy(alpha = if (isEditPressed || isEditing) 0.5f else 1f),
-                    modifier = Modifier.size(42.dp)
+                    modifier = Modifier.size(38.dp)
                 )
             }
         }
