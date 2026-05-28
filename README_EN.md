@@ -18,10 +18,10 @@
 </p>
 
 <p align="center">
-  <a href="./README_EN.md">English</a> | 简体中文
+  English | <a href="./README.md">简体中文</a>
 </p>
 
-> 你应该不再忍受那个复古的倒数日，可以看看这个小巧无广的 **TimeTrace**，主要基于极简的 **Material 3** 框架设计，还有切符的个人审美和小巧思 w
+> You don’t have to put up with those old‑school countdown apps anymore — take a look at **TimeTrace**, a clean and compact little tool with zero ads. It’s built on a minimalist **Material 3** design, sprinkled with my own aesthetic taste and a few tiny clever touches. w
 
 ![](./assets/HJQH-B1aoAAIJ0m.jpg)
 ![](./assets/HJQH-CIakAAuXy5.jpg)
