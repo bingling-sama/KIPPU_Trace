@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.core.content.edit
 
 // 小组件数据更新逻辑
 object TraceWidgetUpdater {
@@ -34,9 +35,9 @@ object TraceWidgetUpdater {
     // 保存小组件绑定的事件ID
     fun saveWidgetEventId(context: Context, appWidgetId: Int, eventId: Long) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putLong(PREF_PREFIX_KEY + appWidgetId, eventId)
-            .apply()
+            .edit {
+                putLong(PREF_PREFIX_KEY + appWidgetId, eventId)
+            }
     }
 
     // 获取小组件绑定的事件ID
@@ -48,9 +49,9 @@ object TraceWidgetUpdater {
     // 移除小组件绑定关系
     fun removeWidgetPreference(context: Context, appWidgetId: Int) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .remove(PREF_PREFIX_KEY + appWidgetId)
-            .apply()
+            .edit {
+                remove(PREF_PREFIX_KEY + appWidgetId)
+            }
     }
 
     // 请求更新所有小组件
