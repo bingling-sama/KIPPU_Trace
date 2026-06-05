@@ -157,8 +157,8 @@ object TraceWidgetUpdater {
             views.setViewVisibility(R.id.widget_date, View.VISIBLE)
             
             applySizeTuning(views, widgetSize)
-            // 无论是否有内容点击均进入更换卡片选择界面
-            views.setOnClickPendingIntent(R.id.widget_root, createConfigIntent(context, appWidgetId))
+            // 点击有内容的小组件直接打开对应卡片详情页
+            views.setOnClickPendingIntent(R.id.widget_root, createOpenAppIntent(context, event.id))
         }
         
         return views
@@ -184,13 +184,14 @@ object TraceWidgetUpdater {
         }
     }
 
-    private fun createOpenAppIntent(context: Context): PendingIntent {
+    private fun createOpenAppIntent(context: Context, eventId: Long): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
+            putExtra("eventId", eventId)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         return PendingIntent.getActivity(
             context,
-            0,
+            eventId.toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
