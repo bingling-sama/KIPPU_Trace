@@ -22,7 +22,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import androidx.core.content.edit
 
 // 小组件数据更新逻辑
@@ -100,16 +99,20 @@ object TraceWidgetUpdater {
             val event = if (eventId != -1L) {
                 AppDatabase.getDatabase(context).eventDao().getEventById(eventId)
             } else null
-            
+
+            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val widthPx = dpToPx(context, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0))
+            val heightPx = dpToPx(context, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0))
+
             appWidgetManager.updateAppWidget(
                 appWidgetId,
-                buildRemoteViews(context, widgetSize, event, appWidgetId),
+                buildRemoteViews(context, widgetSize, event, appWidgetId, widthPx, heightPx),
             )
         }
     }
 
     // 构建远程视图并填充数据
-    private fun buildRemoteViews(context: Context, widgetSize: TraceWidgetSize, event: DateEvent?, appWidgetId: Int): RemoteViews {
+    private fun buildRemoteViews(context: Context, widgetSize: TraceWidgetSize, event: DateEvent?, appWidgetId: Int, widthPx: Int, heightPx: Int): RemoteViews {
         val views = RemoteViews(context.packageName, widgetSize.layoutRes)
         
         // 检测系统是否处于暗色模式
@@ -118,7 +121,7 @@ object TraceWidgetUpdater {
         // 渲染背景如果是空事件则渲染加号
         views.setImageViewBitmap(
             R.id.widget_background,
-            TraceWidgetBackgroundRenderer.render(event, widgetSize, isDark),
+            TraceWidgetBackgroundRenderer.render(event, widthPx, heightPx, isDark),
         )
 
         // 强制隐藏左上角标识（置顶/应用名）
@@ -219,5 +222,14 @@ object TraceWidgetUpdater {
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
             .format(dateFormatter)
+    }
+
+    private fun dpToPx(context: Context, dp: Int): Int {
+        if (dp <= 0) return 0
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            dp.toFloat(),
+            context.resources.displayMetrics,
+        ).toInt()
     }
 }
