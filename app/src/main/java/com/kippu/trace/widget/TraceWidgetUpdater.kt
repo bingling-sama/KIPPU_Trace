@@ -22,7 +22,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import androidx.core.content.edit
 
 // 小组件数据更新逻辑
 object TraceWidgetUpdater {
@@ -34,9 +34,9 @@ object TraceWidgetUpdater {
     // 保存小组件绑定的事件ID
     fun saveWidgetEventId(context: Context, appWidgetId: Int, eventId: Long) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putLong(PREF_PREFIX_KEY + appWidgetId, eventId)
-            .apply()
+            .edit {
+                putLong(PREF_PREFIX_KEY + appWidgetId, eventId)
+            }
     }
 
     // 获取小组件绑定的事件ID
@@ -48,9 +48,9 @@ object TraceWidgetUpdater {
     // 移除小组件绑定关系
     fun removeWidgetPreference(context: Context, appWidgetId: Int) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .remove(PREF_PREFIX_KEY + appWidgetId)
-            .apply()
+            .edit {
+                remove(PREF_PREFIX_KEY + appWidgetId)
+            }
     }
 
     // 请求更新所有小组件
@@ -99,16 +99,20 @@ object TraceWidgetUpdater {
             val event = if (eventId != -1L) {
                 AppDatabase.getDatabase(context).eventDao().getEventById(eventId)
             } else null
-            
+
+            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val widthPx = dpToPx(context, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 0))
+            val heightPx = dpToPx(context, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0))
+
             appWidgetManager.updateAppWidget(
                 appWidgetId,
-                buildRemoteViews(context, widgetSize, event, appWidgetId),
+                buildRemoteViews(context, widgetSize, event, appWidgetId, widthPx, heightPx),
             )
         }
     }
 
     // 构建远程视图并填充数据
-    private fun buildRemoteViews(context: Context, widgetSize: TraceWidgetSize, event: DateEvent?, appWidgetId: Int): RemoteViews {
+    private fun buildRemoteViews(context: Context, widgetSize: TraceWidgetSize, event: DateEvent?, appWidgetId: Int, widthPx: Int, heightPx: Int): RemoteViews {
         val views = RemoteViews(context.packageName, widgetSize.layoutRes)
         
         // 检测系统是否处于暗色模式
@@ -117,7 +121,7 @@ object TraceWidgetUpdater {
         // 渲染背景如果是空事件则渲染加号
         views.setImageViewBitmap(
             R.id.widget_background,
-            TraceWidgetBackgroundRenderer.render(event, widgetSize, isDark),
+            TraceWidgetBackgroundRenderer.render(event, widthPx, heightPx, isDark),
         )
 
         // 强制隐藏左上角标识（置顶/应用名）
@@ -153,8 +157,8 @@ object TraceWidgetUpdater {
             views.setViewVisibility(R.id.widget_date, View.VISIBLE)
             
             applySizeTuning(views, widgetSize)
-            // 无论是否有内容点击均进入更换卡片选择界面
-            views.setOnClickPendingIntent(R.id.widget_root, createConfigIntent(context, appWidgetId))
+            // 点击有内容的小组件直接打开对应卡片详情页
+            views.setOnClickPendingIntent(R.id.widget_root, createOpenAppIntent(context, event.id))
         }
         
         return views
@@ -180,13 +184,14 @@ object TraceWidgetUpdater {
         }
     }
 
-    private fun createOpenAppIntent(context: Context): PendingIntent {
+    private fun createOpenAppIntent(context: Context, eventId: Long): PendingIntent {
         val intent = Intent(context, MainActivity::class.java).apply {
+            putExtra("eventId", eventId)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         return PendingIntent.getActivity(
             context,
-            0,
+            eventId.toInt(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -218,5 +223,14 @@ object TraceWidgetUpdater {
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
             .format(dateFormatter)
+    }
+
+    private fun dpToPx(context: Context, dp: Int): Int {
+        if (dp <= 0) return 0
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            dp.toFloat(),
+            context.resources.displayMetrics,
+        ).toInt()
     }
 }

@@ -10,8 +10,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -71,7 +69,11 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-    
+
+    // 小组件点击传入的 deep link eventId
+    var deepLinkEventId by mutableStateOf<Long?>(null)
+        private set
+
     // 专门用于强制同步状态栏的函数
     private fun forceUpdateSystemBars(isDark: Boolean) {
         // 针对 ColorOS 补丁（因为我是 ColorOS） 使用官方方法
@@ -120,6 +122,9 @@ class MainActivity : ComponentActivity() {
             ThemeMode.DARK -> true
         }
         
+        // 读取小组件 deep link
+        deepLinkEventId = intent?.getLongExtra("eventId", -1L)?.takeIf { it > 0 }
+
         // ColorOS 补丁 确保 DecorView 已经初始化
         window.decorView.post {
             forceUpdateSystemBars(isInitialDark)
@@ -153,7 +158,8 @@ class MainActivity : ComponentActivity() {
                         ThemePreferences.setThemeMode(context, mode)
                     },
                     onAddEvent = { eventViewModel.addEvent(it) },
-                    onDeleteEvent = { eventViewModel.deleteEvent(it) }
+                    onDeleteEvent = { eventViewModel.deleteEvent(it) },
+                    initialDetailEventId = deepLinkEventId,
                 )
             }
         }
@@ -169,6 +175,12 @@ class MainActivity : ComponentActivity() {
             ThemeMode.DARK -> true
         }
         forceUpdateSystemBars(isDark)
+    }
+
+    // 处理小组件点击 deep link（App 已在后台时走 onNewIntent）
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        deepLinkEventId = intent.getLongExtra("eventId", -1L).takeIf { it > 0 }
     }
 }
 
@@ -298,11 +310,19 @@ fun MainApp(
     onThemeModeChange: (ThemeMode) -> Unit = {},
     onAddEvent: (DateEvent) -> Unit = {},
     onDeleteEvent: (DateEvent) -> Unit = {},
+    initialDetailEventId: Long? = null,
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val coroutineScope = rememberCoroutineScope()
+
+    // 小组件点击 deep link → 直接打开卡片详情页
+    LaunchedEffect(initialDetailEventId) {
+        if (initialDetailEventId != null && initialDetailEventId > 0) {
+            navController.navigate(Screen.Detail.createRoute(initialDetailEventId))
+        }
+    }
 
     val pagerState = rememberPagerState(pageCount = { 3 })
     
