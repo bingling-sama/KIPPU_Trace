@@ -29,6 +29,8 @@ import coil.compose.AsyncImage
 import com.kippu.trace.R
 import com.kippu.trace.model.DateEvent
 import com.kippu.trace.model.DisplayMode
+import com.kippu.trace.ui.theme.AnniversaryGoldOnDark
+import com.kippu.trace.utils.AnniversaryUtils
 import com.kippu.trace.utils.TextUtils
 import com.kippu.trace.utils.fadeRightEdge
 import com.kippu.trace.utils.fadeLastLineEdge
@@ -49,6 +51,8 @@ fun PinnedEventCard(
         .toLocalDate()
     val today = LocalDate.now()
     val days = ChronoUnit.DAYS.between(today, targetLocalDate).let { if (it < 0) -it else it }
+
+    val anniversary = AnniversaryUtils.checkAllAnniversaries(event)
 
     Card(
         onClick = onClick,
@@ -149,10 +153,10 @@ fun PinnedEventCard(
                                 )
                             }
                             Text(
-                                text = targetLocalDate.toString(),
+                                text = if (anniversary.isTriggered) anniversary.displayText() else targetLocalDate.toString(),
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontWeight = FontWeight.Normal
+                                    color = if (anniversary.isTriggered) AnniversaryGoldOnDark else Color.White.copy(alpha = 0.7f),
+                                    fontWeight = if (anniversary.isTriggered) FontWeight.Bold else FontWeight.Normal
                                 )
                             )
                         }
@@ -204,10 +208,10 @@ fun PinnedEventCard(
                             }
 
                             Text(
-                                text = targetLocalDate.toString(),
+                                text = if (anniversary.isTriggered) anniversary.displayText() else targetLocalDate.toString(),
                                 style = MaterialTheme.typography.labelSmall.copy(
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontWeight = FontWeight.Normal
+                                    color = if (anniversary.isTriggered) AnniversaryGoldOnDark else Color.White.copy(alpha = 0.7f),
+                                    fontWeight = if (anniversary.isTriggered) FontWeight.Bold else FontWeight.Normal
                                 ),
                                 modifier = Modifier.offset(y = (-4).dp)
                             )
@@ -236,10 +240,10 @@ fun PinnedEventCard(
                                     )
                                 )
                                 Text(
-                                    text = targetLocalDate.toString(),
+                                    text = if (anniversary.isTriggered) anniversary.displayText() else targetLocalDate.toString(),
                                     style = MaterialTheme.typography.labelMedium.copy(
-                                        color = Color.White.copy(alpha = 0.8f),
-                                        fontWeight = FontWeight.Normal
+                                        color = if (anniversary.isTriggered) AnniversaryGoldOnDark else Color.White.copy(alpha = 0.8f),
+                                        fontWeight = if (anniversary.isTriggered) FontWeight.Bold else FontWeight.Normal
                                     )
                                 )
                             }

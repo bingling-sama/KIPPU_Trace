@@ -8,6 +8,14 @@ enum class DisplayMode {
     ACCUMULATE  // 累计
 }
 
+enum class RepeatMode {
+    NONE,         // 不重复
+    YEARLY,       // 每年
+    MONTHLY,      // 每月
+    WEEKLY,       // 每周
+    CUSTOM_DAYS   // 自定义天数
+}
+
 @Entity(tableName = "date_events")
 data class DateEvent(
     @PrimaryKey(autoGenerate = true)
@@ -20,5 +28,16 @@ data class DateEvent(
     val backgroundUri: String? = null,
     val isPinned: Boolean = false,
     val maskOpacity: Float = 0.3f,
-    val position: Int = 0
+    val position: Int = 0,
+    // 倒数模式 - 自动重置
+    val repeatMode: RepeatMode = RepeatMode.NONE,
+    val repeatCustomDays: Int = 0,
+    // 累计模式 - 自定义纪念日
+    val customAnniversaryDays: Int = 0,       // N，0 表示不启用
+    // 累计模式 - 系统预设纪念日开关
+    val anniversaryYearEnabled: Boolean = false,
+    val anniversaryMonthEnabled: Boolean = false,
+    val anniversaryWeekEnabled: Boolean = false,
+    // 多纪念日同日触发时的合并文案
+    val anniversaryCombinedText: String = ""
 )

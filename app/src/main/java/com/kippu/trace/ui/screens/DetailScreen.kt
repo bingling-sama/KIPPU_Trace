@@ -26,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.SaveAlt
@@ -57,8 +56,11 @@ import coil.compose.AsyncImage
 import com.kippu.trace.R
 import com.kippu.trace.model.DateEvent
 import com.kippu.trace.model.DisplayMode
+import com.kippu.trace.ui.theme.AnniversaryGoldOnDark
+import com.kippu.trace.utils.AnniversaryUtils
 import com.kippu.trace.utils.FileUtils
 import com.kippu.trace.utils.TimeUtils
+import com.kippu.trace.utils.buildTitleWithPrefixAnnotatedString
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -602,6 +604,8 @@ fun EventDetailItem(
     val targetLocalDate = Instant.ofEpochMilli(event.targetDate).atZone(ZoneId.systemDefault()).toLocalDate()
     val days = ChronoUnit.DAYS.between(LocalDate.now(), targetLocalDate).let { if (it < 0) -it else it }
 
+    val anniversary = AnniversaryUtils.checkAllAnniversaries(event)
+
     val animatedDays = remember { Animatable(0f) }
     var detailedTime by remember { mutableStateOf(TimeUtils.getDetailedTime(event.targetDate)) }
 
@@ -687,23 +691,7 @@ fun EventDetailItem(
             
             // 构造每9字换行且前缀紧跟末尾的标题（总长限35字）
             val annotatedTitle = remember(event.title, prefix) {
-                val displayTitle = if (event.title.length > 35) {
-                    event.title.take(32) + "..."
-                } else {
-                    event.title
-                }
-                
-                androidx.compose.ui.text.buildAnnotatedString {
-                    val chunks = displayTitle.chunked(9)
-                    chunks.forEachIndexed { index, chunk ->
-                        append(chunk)
-                        if (index < chunks.size - 1) append("\n")
-                    }
-                    append(" ")
-                    pushStyle(androidx.compose.ui.text.SpanStyle(color = Color.White.copy(alpha = 0.7f)))
-                    append(prefix)
-                    pop()
-                }
+                buildTitleWithPrefixAnnotatedString(event.title, prefix)
             }
 
             Text(
@@ -728,25 +716,54 @@ fun EventDetailItem(
                 else -> 120.sp
             }
 
-            Row(verticalAlignment = Alignment.Bottom) {
+            if (anniversary.isTriggered) {
+                // 纪念日大字展示
+                val anniversaryText = anniversary.displayText()
+                val anniversaryFontSize = when {
+                    anniversaryText.length >= 12 -> 28.sp
+                    anniversaryText.length >= 8 -> 36.sp
+                    anniversaryText.length >= 6 -> 48.sp
+                    else -> 64.sp
+                }
                 Text(
-                    text = animatedDays.value.toInt().toString(),
+                    text = anniversaryText,
                     style = MaterialTheme.typography.displayLarge.copy(
-                        fontSize = fontSize,
+                        fontSize = anniversaryFontSize,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = AnniversaryGoldOnDark
+                    ),
+                    modifier = Modifier.padding(horizontal = 32.dp),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.anniversary_indicator),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = AnniversaryGoldOnDark.copy(alpha = 0.8f),
+                        letterSpacing = 2.sp
+                    )
+                )
+            } else {
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = animatedDays.value.toInt().toString(),
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontSize = fontSize,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    )
+                }
+
+                val datePrefix = if (event.isFuture) stringResource(R.string.label_from) else stringResource(R.string.label_since_date)
+                Text(
+                    text = "$datePrefix $targetLocalDate",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = Color.White.copy(alpha = 0.6f),
+                        letterSpacing = 2.sp
                     )
                 )
             }
-            
-            val datePrefix = if (event.isFuture) stringResource(R.string.label_from) else stringResource(R.string.label_since_date)
-            Text(
-                text = "$datePrefix $targetLocalDate",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color.White.copy(alpha = 0.6f),
-                    letterSpacing = 2.sp
-                )
-            )
 
             Spacer(modifier = Modifier.height(8.dp))
 

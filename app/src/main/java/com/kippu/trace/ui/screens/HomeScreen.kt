@@ -53,6 +53,7 @@ import com.kippu.trace.model.DateEvent
 import com.kippu.trace.model.DisplayMode
 import com.kippu.trace.utils.FileUtils
 import kotlinx.coroutines.launch
+import com.kippu.trace.ui.components.AnniversaryConfigSection
 import com.kippu.trace.ui.components.NormalEventCard
 import com.kippu.trace.ui.components.PinnedEventCard
 import java.time.Instant
@@ -322,6 +323,24 @@ fun HomeScreen(
                 }
 
                 ModeSwitcher(selectedMode = event.mode, onModeSelected = { editingEvent = editingEvent?.copy(mode = it) })
+
+                AnniversaryConfigSection(
+                    mode = event.mode,
+                    repeatMode = event.repeatMode,
+                    onRepeatModeChange = { editingEvent = editingEvent?.copy(repeatMode = it) },
+                    repeatCustomDays = event.repeatCustomDays,
+                    onRepeatCustomDaysChange = { editingEvent = editingEvent?.copy(repeatCustomDays = it) },
+                    customAnniversaryDays = event.customAnniversaryDays,
+                    onCustomAnniversaryDaysChange = { editingEvent = editingEvent?.copy(customAnniversaryDays = it) },
+                    anniversaryYearEnabled = event.anniversaryYearEnabled,
+                    onAnniversaryYearChange = { editingEvent = editingEvent?.copy(anniversaryYearEnabled = it) },
+                    anniversaryMonthEnabled = event.anniversaryMonthEnabled,
+                    onAnniversaryMonthChange = { editingEvent = editingEvent?.copy(anniversaryMonthEnabled = it) },
+                    anniversaryWeekEnabled = event.anniversaryWeekEnabled,
+                    onAnniversaryWeekChange = { editingEvent = editingEvent?.copy(anniversaryWeekEnabled = it) },
+                    anniversaryCombinedText = event.anniversaryCombinedText,
+                    onAnniversaryCombinedTextChange = { editingEvent = editingEvent?.copy(anniversaryCombinedText = it) },
+                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),

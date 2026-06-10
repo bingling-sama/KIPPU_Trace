@@ -46,10 +46,13 @@ import coil.compose.AsyncImage
 import com.kippu.trace.R
 import com.kippu.trace.model.DateEvent
 import com.kippu.trace.model.DisplayMode
+import com.kippu.trace.model.RepeatMode
+import com.kippu.trace.ui.components.AnniversaryConfigSection
 import com.kippu.trace.ui.components.PinnedEventCard
 import com.kippu.trace.ui.theme.KIPPU_TraceTheme
 import com.kippu.trace.utils.FileUtils
 import com.kippu.trace.utils.TextUtils
+import com.kippu.trace.utils.buildTitleWithPrefixAnnotatedString
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -73,6 +76,15 @@ fun EditorScreen(
     var maskOpacity by remember { mutableFloatStateOf(0.4f) }
     val showDatePicker = remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf(DisplayMode.COUNT_DOWN) }
+    // 倒数模式 - 重复
+    var repeatMode by remember { mutableStateOf(RepeatMode.NONE) }
+    var repeatCustomDays by remember { mutableIntStateOf(0) }
+    // 累计模式 - 纪念日
+    var customAnniversaryDays by remember { mutableIntStateOf(0) }
+    var anniversaryYearEnabled by remember { mutableStateOf(false) }
+    var anniversaryMonthEnabled by remember { mutableStateOf(false) }
+    var anniversaryWeekEnabled by remember { mutableStateOf(false) }
+    var anniversaryCombinedText by remember { mutableStateOf("") }
 
     val scrollState = rememberScrollState()
 
@@ -203,7 +215,14 @@ fun EditorScreen(
                             mode = mode,
                             isPinned = isPinned,
                             backgroundUri = backgroundUri,
-                            maskOpacity = maskOpacity
+                            maskOpacity = maskOpacity,
+                            repeatMode = repeatMode,
+                            repeatCustomDays = repeatCustomDays,
+                            customAnniversaryDays = customAnniversaryDays,
+                            anniversaryYearEnabled = anniversaryYearEnabled,
+                            anniversaryMonthEnabled = anniversaryMonthEnabled,
+                            anniversaryWeekEnabled = anniversaryWeekEnabled,
+                            anniversaryCombinedText = anniversaryCombinedText,
                         ))
                     }) {
                         Icon(painter = rememberVectorPainter(Icons.Default.Check), contentDescription = "Save", tint = MaterialTheme.colorScheme.primary)
@@ -308,6 +327,24 @@ fun EditorScreen(
                 ModeSwitcher(
                     selectedMode = mode,
                     onModeSelected = { mode = it }
+                )
+
+                AnniversaryConfigSection(
+                    mode = mode,
+                    repeatMode = repeatMode,
+                    onRepeatModeChange = { repeatMode = it },
+                    repeatCustomDays = repeatCustomDays,
+                    onRepeatCustomDaysChange = { repeatCustomDays = it },
+                    customAnniversaryDays = customAnniversaryDays,
+                    onCustomAnniversaryDaysChange = { customAnniversaryDays = it },
+                    anniversaryYearEnabled = anniversaryYearEnabled,
+                    onAnniversaryYearChange = { anniversaryYearEnabled = it },
+                    anniversaryMonthEnabled = anniversaryMonthEnabled,
+                    onAnniversaryMonthChange = { anniversaryMonthEnabled = it },
+                    anniversaryWeekEnabled = anniversaryWeekEnabled,
+                    onAnniversaryWeekChange = { anniversaryWeekEnabled = it },
+                    anniversaryCombinedText = anniversaryCombinedText,
+                    onAnniversaryCombinedTextChange = { anniversaryCombinedText = it },
                 )
             }
 
@@ -501,23 +538,7 @@ fun FullScreenPreviewContent(title: String, days: String, imageUri: String?, opa
             
             // 构造每9字换行且前缀紧跟末尾的标题（同步 DetailScreen 逻辑）
             val annotatedTitle = remember(title, prefix) {
-                val displayTitle = if (title.length > 35) {
-                    title.take(32) + "..."
-                } else {
-                    title
-                }
-                
-                androidx.compose.ui.text.buildAnnotatedString {
-                    val chunks = displayTitle.chunked(9)
-                    chunks.forEachIndexed { index, chunk ->
-                        append(chunk)
-                        if (index < chunks.size - 1) append("\n")
-                    }
-                    append(" ")
-                    pushStyle(androidx.compose.ui.text.SpanStyle(color = Color.White.copy(alpha = 0.7f)))
-                    append(prefix)
-                    pop()
-                }
+                buildTitleWithPrefixAnnotatedString(title, prefix)
             }
 
             Text(

@@ -8,6 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.kippu.trace.data.AppDatabase
 import com.kippu.trace.data.EventRepository
 import com.kippu.trace.model.DateEvent
+import com.kippu.trace.model.DisplayMode
+import com.kippu.trace.model.RepeatMode
+import com.kippu.trace.utils.AnniversaryUtils
 import com.kippu.trace.utils.BackupManager
 import com.kippu.trace.widget.TraceWidgetUpdater
 import kotlinx.coroutines.Dispatchers
@@ -16,10 +19,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicBoolean
 
 class EventViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: EventRepository
     val allEvents: StateFlow<List<DateEvent>>
+
+    private val advancing = AtomicBoolean(false)
 
     init {
         val eventDao = AppDatabase.getDatabase(application).eventDao()
@@ -29,6 +35,33 @@ class EventViewModel(application: Application) : AndroidViewModel(application) {
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList(),
         )
+        checkAndAdvanceCountdowns()
+    }
+
+    /** 检查所有倒数模式事件，若目标日期已过则按重复规则推进 */
+    fun checkAndAdvanceCountdowns() {
+        if (!advancing.compareAndSet(false, true)) return
+        viewModelScope.launch {
+            try {
+                val events = withContext(Dispatchers.IO) { repository.getAllEventsOnce() }
+                val updated = events.mapNotNull { event ->
+                    if (event.mode == DisplayMode.COUNT_DOWN && event.repeatMode != RepeatMode.NONE) {
+                        val newTarget = AnniversaryUtils.advanceTargetDate(
+                            event.targetDate, event.repeatMode, event.repeatCustomDays
+                        )
+                        if (newTarget != null) {
+                            event.copy(targetDate = newTarget, isFuture = true)
+                        } else null
+                    } else null
+                }
+                if (updated.isNotEmpty()) {
+                    withContext(Dispatchers.IO) { repository.updateEvents(updated) }
+                    TraceWidgetUpdater.requestAllUpdate(getApplication())
+                }
+            } finally {
+                advancing.set(false)
+            }
+        }
     }
 
     fun addEvent(event: DateEvent) {

@@ -1,6 +1,5 @@
 package com.kippu.trace
 
-import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -48,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.os.LocaleListCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.activity.viewModels
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -62,7 +61,6 @@ import com.kippu.trace.utils.LanguagePreferences
 import com.kippu.trace.utils.ThemeMode
 import com.kippu.trace.utils.ThemePreferences
 import com.kippu.trace.viewmodel.EventViewModel
-import com.kippu.trace.widget.TraceWidgetUpdater
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
@@ -73,6 +71,8 @@ class MainActivity : ComponentActivity() {
     // 小组件点击传入的 deep link eventId
     var deepLinkEventId by mutableStateOf<Long?>(null)
         private set
+
+    private val eventViewModel: EventViewModel by viewModels()
 
     // 专门用于强制同步状态栏的函数
     private fun forceUpdateSystemBars(isDark: Boolean) {
@@ -131,7 +131,6 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            val eventViewModel: EventViewModel = viewModel()
             val events by eventViewModel.allEvents.collectAsState()
             val context = this
             var themeMode by remember { mutableStateOf(ThemePreferences.getThemeMode(context)) }
@@ -175,6 +174,8 @@ class MainActivity : ComponentActivity() {
             ThemeMode.DARK -> true
         }
         forceUpdateSystemBars(isDark)
+        // 触发倒数模式自动推进检查
+        eventViewModel.checkAndAdvanceCountdowns()
     }
 
     // 处理小组件点击 deep link（App 已在后台时走 onNewIntent）
