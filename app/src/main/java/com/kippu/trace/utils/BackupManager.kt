@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.kippu.trace.model.DateEvent
 import com.kippu.trace.model.DisplayMode
+import com.kippu.trace.model.RepeatMode
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -124,6 +125,21 @@ object BackupManager {
             }
             put("isPinned", isPinned)
             put("maskOpacity", maskOpacity.toDouble())
+            // 倒数模式 - 自动重置
+            put("repeatMode", repeatMode.name)
+            if (repeatCustomDays > 0) {
+                put("repeatCustomDays", repeatCustomDays)
+            }
+            // 累计模式 - 纪念日
+            if (customAnniversaryDays > 0) {
+                put("customAnniversaryDays", customAnniversaryDays)
+            }
+            put("anniversaryYearEnabled", anniversaryYearEnabled)
+            put("anniversaryMonthEnabled", anniversaryMonthEnabled)
+            put("anniversaryWeekEnabled", anniversaryWeekEnabled)
+            if (anniversaryCombinedText.isNotEmpty()) {
+                put("anniversaryCombinedText", anniversaryCombinedText)
+            }
         }
     }
 
@@ -140,6 +156,13 @@ object BackupManager {
             } else null,
             isPinned = optBoolean("isPinned", false),
             maskOpacity = optDouble("maskOpacity", 0.3).toFloat(),
+            repeatMode = if (has("repeatMode")) RepeatMode.valueOf(getString("repeatMode")) else RepeatMode.NONE,
+            repeatCustomDays = optInt("repeatCustomDays", 0),
+            customAnniversaryDays = optInt("customAnniversaryDays", 0),
+            anniversaryYearEnabled = optBoolean("anniversaryYearEnabled", false),
+            anniversaryMonthEnabled = optBoolean("anniversaryMonthEnabled", false),
+            anniversaryWeekEnabled = optBoolean("anniversaryWeekEnabled", false),
+            anniversaryCombinedText = optString("anniversaryCombinedText", ""),
         )
     }
 }
