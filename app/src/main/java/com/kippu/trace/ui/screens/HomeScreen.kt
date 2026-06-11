@@ -222,17 +222,116 @@ fun HomeScreen(
         val showEditDatePicker = remember { mutableStateOf(false) }
 
         if (showEditDatePicker.value) {
-            EditDatePickerDialog(
-                initialDateMillis = event.targetDate,
-                onConfirm = { millis ->
-                    editingEvent = editingEvent?.copy(
-                        targetDate = millis,
-                        mode = if (millis > System.currentTimeMillis()) DisplayMode.COUNT_DOWN else DisplayMode.ACCUMULATE
-                    )
-                    showEditDatePicker.value = false
-                },
-                onDismiss = { showEditDatePicker.value = false }
-            )
+            val editDatePickerState = rememberDatePickerState(initialSelectedDateMillis = event.targetDate)
+            var editDatePickerStep by remember { mutableIntStateOf(0) }  // 0=日期选择 1=纪念日/重置设置
+
+            Dialog(
+                onDismissRequest = { showEditDatePicker.value = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(28.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 0.dp,
+                    modifier = Modifier
+                        .widthIn(min = 320.dp, max = 480.dp)
+                        .fillMaxWidth(0.85f)
+                        .wrapContentHeight()
+                ) {
+                    if (editDatePickerStep == 0) {
+                        // 第一步：选择日期
+                        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                            val scale = (this.maxWidth / 360.dp).coerceIn(0.88f, 1.1f)
+                            Column(
+                                modifier = Modifier.padding(top = 20.dp, bottom = 16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.select_date),
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                    modifier = Modifier
+                                        .align(Alignment.Start)
+                                        .padding(start = 20.dp, end = 20.dp, bottom = 8.dp)
+                                )
+                                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                    DatePicker(
+                                        state = editDatePickerState,
+                                        title = null,
+                                        headline = null,
+                                        showModeToggle = false,
+                                        colors = DatePickerDefaults.colors(
+                                            containerColor = MaterialTheme.colorScheme.surface,
+                                            dividerColor = Color.Transparent
+                                        ),
+                                        modifier = Modifier
+                                            .requiredWidth(360.dp)
+                                            .scale(scale)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(onClick = { showEditDatePicker.value = false }) {
+                                        Text(stringResource(R.string.cancel))
+                                    }
+                                    TextButton(onClick = {
+                                        editDatePickerState.selectedDateMillis?.let { millis ->
+                                            editingEvent = editingEvent?.copy(
+                                                targetDate = millis,
+                                                mode = if (millis > System.currentTimeMillis()) DisplayMode.COUNT_DOWN else DisplayMode.ACCUMULATE
+                                            )
+                                        }
+                                        editDatePickerStep = 1
+                                    }) {
+                                        Text(stringResource(R.string.next))
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // 第二步：Reset / Anniversary 设置
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Text(
+                                text = stringResource(
+                                    if (event.mode == DisplayMode.COUNT_DOWN) R.string.repeat_section else R.string.anniversary_section
+                                ),
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                            )
+
+                            AnniversaryConfigSection(
+                                mode = event.mode,
+                                repeatMode = event.repeatMode,
+                                onRepeatModeChange = { editingEvent = editingEvent?.copy(repeatMode = it) },
+                                repeatCustomDays = event.repeatCustomDays,
+                                onRepeatCustomDaysChange = { editingEvent = editingEvent?.copy(repeatCustomDays = it) },
+                                customAnniversaryDays = event.customAnniversaryDays,
+                                onCustomAnniversaryDaysChange = { editingEvent = editingEvent?.copy(customAnniversaryDays = it) },
+                                anniversaryYearEnabled = event.anniversaryYearEnabled,
+                                onAnniversaryYearChange = { editingEvent = editingEvent?.copy(anniversaryYearEnabled = it) },
+                                anniversaryMonthEnabled = event.anniversaryMonthEnabled,
+                                onAnniversaryMonthChange = { editingEvent = editingEvent?.copy(anniversaryMonthEnabled = it) },
+                                anniversaryWeekEnabled = event.anniversaryWeekEnabled,
+                                onAnniversaryWeekChange = { editingEvent = editingEvent?.copy(anniversaryWeekEnabled = it) },
+                                anniversaryCombinedText = event.anniversaryCombinedText,
+                                onAnniversaryCombinedTextChange = { editingEvent = editingEvent?.copy(anniversaryCombinedText = it) },
+                            )
+
+                            Button(
+                                onClick = { showEditDatePicker.value = false },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Text(stringResource(R.string.confirm), style = MaterialTheme.typography.labelLarge)
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         ModalBottomSheet(
@@ -323,24 +422,6 @@ fun HomeScreen(
                 }
 
                 ModeSwitcher(selectedMode = event.mode, onModeSelected = { editingEvent = editingEvent?.copy(mode = it) })
-
-                AnniversaryConfigSection(
-                    mode = event.mode,
-                    repeatMode = event.repeatMode,
-                    onRepeatModeChange = { editingEvent = editingEvent?.copy(repeatMode = it) },
-                    repeatCustomDays = event.repeatCustomDays,
-                    onRepeatCustomDaysChange = { editingEvent = editingEvent?.copy(repeatCustomDays = it) },
-                    customAnniversaryDays = event.customAnniversaryDays,
-                    onCustomAnniversaryDaysChange = { editingEvent = editingEvent?.copy(customAnniversaryDays = it) },
-                    anniversaryYearEnabled = event.anniversaryYearEnabled,
-                    onAnniversaryYearChange = { editingEvent = editingEvent?.copy(anniversaryYearEnabled = it) },
-                    anniversaryMonthEnabled = event.anniversaryMonthEnabled,
-                    onAnniversaryMonthChange = { editingEvent = editingEvent?.copy(anniversaryMonthEnabled = it) },
-                    anniversaryWeekEnabled = event.anniversaryWeekEnabled,
-                    onAnniversaryWeekChange = { editingEvent = editingEvent?.copy(anniversaryWeekEnabled = it) },
-                    anniversaryCombinedText = event.anniversaryCombinedText,
-                    onAnniversaryCombinedTextChange = { editingEvent = editingEvent?.copy(anniversaryCombinedText = it) },
-                )
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -492,75 +573,6 @@ fun SwipeActionWrapper(
             }
         }
         Box(modifier = Modifier.fillMaxWidth().offset { IntOffset(offsetX.value.roundToInt(), 0) }) { content() }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditDatePickerDialog(
-    initialDateMillis: Long,
-    onConfirm: (Long) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialDateMillis)
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Surface(
-            shape = RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            modifier = Modifier
-                .widthIn(min = 320.dp, max = 480.dp)
-                .fillMaxWidth(0.85f)
-                .wrapContentHeight()
-        ) {
-            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                val scale = (this.maxWidth / 360.dp).coerceIn(0.88f, 1.1f)
-                Column(
-                    modifier = Modifier.padding(top = 20.dp, bottom = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = stringResource(R.string.select_date),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier
-                            .align(Alignment.Start)
-                            .padding(start = 20.dp, end = 20.dp, bottom = 8.dp)
-                    )
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        DatePicker(
-                            state = datePickerState,
-                            title = null,
-                            headline = null,
-                            showModeToggle = false,
-                            colors = DatePickerDefaults.colors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                dividerColor = Color.Transparent
-                            ),
-                            modifier = Modifier
-                                .requiredWidth(360.dp)
-                                .scale(scale)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(onClick = onDismiss) {
-                            Text(stringResource(R.string.cancel))
-                        }
-                        TextButton(onClick = {
-                            datePickerState.selectedDateMillis?.let { onConfirm(it) }
-                        }) {
-                            Text(stringResource(R.string.confirm))
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

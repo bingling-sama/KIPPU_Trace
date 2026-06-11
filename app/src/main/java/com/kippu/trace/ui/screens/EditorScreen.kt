@@ -122,6 +122,7 @@ fun EditorScreen(
 
     if (showDatePicker.value) {
         val datePickerState = rememberDatePickerState(initialSelectedDateMillis = selectedDate)
+        var datePickerStep by remember { mutableIntStateOf(0) }  // 0=日期选择 1=纪念日/重置设置
 
         Dialog(
             onDismissRequest = { showDatePicker.value = false },
@@ -132,64 +133,102 @@ fun EditorScreen(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp,
                 modifier = Modifier
-                    // 手机上默认 320dp，在大屏（如 Pad）下最高可扩展至 480dp
                     .widthIn(min = 320.dp, max = 480.dp)
                     .fillMaxWidth(0.85f)
                     .wrapContentHeight()
             ) {
-                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                    val scope = this
-                    // 根据容器实际宽度计算缩放比例。360dp 是 DatePicker 完整显示所需的理想宽度。
-                    val scale = (scope.maxWidth / 360.dp).coerceIn(0.88f, 1.1f)
-                    
+                if (datePickerStep == 0) {
+                    // 第一步：选择日期
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val scope = this
+                        val scale = (scope.maxWidth / 360.dp).coerceIn(0.88f, 1.1f)
+
+                        Column(
+                            modifier = Modifier.padding(top = 20.dp, bottom = 16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = stringResource(R.string.select_date),
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                modifier = Modifier
+                                    .align(Alignment.Start)
+                                    .padding(start = 20.dp, end = 20.dp, bottom = 8.dp)
+                            )
+
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                DatePicker(
+                                    state = datePickerState,
+                                    title = null,
+                                    headline = null,
+                                    showModeToggle = false,
+                                    colors = DatePickerDefaults.colors(
+                                        containerColor = MaterialTheme.colorScheme.surface,
+                                        dividerColor = Color.Transparent
+                                    ),
+                                    modifier = Modifier
+                                        .requiredWidth(360.dp)
+                                        .scale(scale)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                TextButton(onClick = { showDatePicker.value = false }) {
+                                    Text(stringResource(R.string.cancel))
+                                }
+                                TextButton(onClick = {
+                                    datePickerState.selectedDateMillis?.let { selectedDate = it }
+                                    datePickerStep = 1
+                                }) {
+                                    Text(stringResource(R.string.next))
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // 第二步：Reset / Anniversary 设置
                     Column(
-                        modifier = Modifier.padding(top = 20.dp, bottom = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.select_date),
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                            modifier = Modifier
-                                .align(Alignment.Start)
-                                .padding(start = 20.dp, end = 20.dp, bottom = 8.dp)
+                            text = stringResource(
+                                if (mode == DisplayMode.COUNT_DOWN) R.string.repeat_section else R.string.anniversary_section
+                            ),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
 
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            DatePicker(
-                                state = datePickerState,
-                                title = null,
-                                headline = null,
-                                showModeToggle = false,
-                                colors = DatePickerDefaults.colors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                    dividerColor = Color.Transparent
-                                ),
-                                modifier = Modifier
-                                    // 强制指定 DatePicker 宽度为 360dp 以防止其内部日期列丢失
-                                    .requiredWidth(360.dp)
-                                    // 缩放以适配外部 Surface 容器
-                                    .scale(scale)
-                            )
-                        }
+                        AnniversaryConfigSection(
+                            mode = mode,
+                            repeatMode = repeatMode,
+                            onRepeatModeChange = { repeatMode = it },
+                            repeatCustomDays = repeatCustomDays,
+                            onRepeatCustomDaysChange = { repeatCustomDays = it },
+                            customAnniversaryDays = customAnniversaryDays,
+                            onCustomAnniversaryDaysChange = { customAnniversaryDays = it },
+                            anniversaryYearEnabled = anniversaryYearEnabled,
+                            onAnniversaryYearChange = { anniversaryYearEnabled = it },
+                            anniversaryMonthEnabled = anniversaryMonthEnabled,
+                            onAnniversaryMonthChange = { anniversaryMonthEnabled = it },
+                            anniversaryWeekEnabled = anniversaryWeekEnabled,
+                            onAnniversaryWeekChange = { anniversaryWeekEnabled = it },
+                            anniversaryCombinedText = anniversaryCombinedText,
+                            onAnniversaryCombinedTextChange = { anniversaryCombinedText = it },
+                        )
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.End
+                        Button(
+                            onClick = { showDatePicker.value = false },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(14.dp)
                         ) {
-                            TextButton(onClick = { showDatePicker.value = false }) {
-                                Text(stringResource(R.string.cancel))
-                            }
-                            TextButton(onClick = {
-                                datePickerState.selectedDateMillis?.let { selectedDate = it }
-                                showDatePicker.value = false
-                            }) {
-                                Text(stringResource(R.string.confirm))
-                            }
+                            Text(stringResource(R.string.confirm), style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -327,24 +366,6 @@ fun EditorScreen(
                 ModeSwitcher(
                     selectedMode = mode,
                     onModeSelected = { mode = it }
-                )
-
-                AnniversaryConfigSection(
-                    mode = mode,
-                    repeatMode = repeatMode,
-                    onRepeatModeChange = { repeatMode = it },
-                    repeatCustomDays = repeatCustomDays,
-                    onRepeatCustomDaysChange = { repeatCustomDays = it },
-                    customAnniversaryDays = customAnniversaryDays,
-                    onCustomAnniversaryDaysChange = { customAnniversaryDays = it },
-                    anniversaryYearEnabled = anniversaryYearEnabled,
-                    onAnniversaryYearChange = { anniversaryYearEnabled = it },
-                    anniversaryMonthEnabled = anniversaryMonthEnabled,
-                    onAnniversaryMonthChange = { anniversaryMonthEnabled = it },
-                    anniversaryWeekEnabled = anniversaryWeekEnabled,
-                    onAnniversaryWeekChange = { anniversaryWeekEnabled = it },
-                    anniversaryCombinedText = anniversaryCombinedText,
-                    onAnniversaryCombinedTextChange = { anniversaryCombinedText = it },
                 )
             }
 

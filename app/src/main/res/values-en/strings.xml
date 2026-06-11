@@ -11,6 +11,7 @@
     <string name="close">Close</string>
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
+    <string name="next">Next</string>
     <string name="follow_system">System</string>
     <string name="light_mode">Light</string>
     <string name="dark_mode">Dark</string>
